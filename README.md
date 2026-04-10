@@ -11,7 +11,9 @@ This repository builds a **Vite + Three.js** page with **bundled** Three.js and 
 - **Develop:** `npm install` then `npm run dev`
 - **Build:** `python3 scripts/fetch_textures.py` then `npm run build` (output: `docs/`)
 
-**Pages settings:** **Deploy from branch** → **main** and **`/docs`** folder. Do **not** publish the repository **root** as the site; the root `index.html` is **source** for Vite only—the built site lives in **`docs/`**.
+**GitHub Pages:** **Deploy from branch** → **main** and **`/docs`** folder. Do **not** publish the repository **root** as the site; the root `index.html` is **source** for Vite only—the built site lives in **`docs/`**.
+
+**Vercel:** The build outputs to **`docs/`** (not `dist`). `vercel.json` sets `outputDirectory` to `docs` so the deployment matches Vite’s `outDir`.
 
 You can add a GitHub Actions “Deploy Pages” workflow later if you want builds on every push (requires a token with the `workflow` scope to push workflow files).
 
