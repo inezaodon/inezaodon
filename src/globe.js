@@ -254,6 +254,37 @@ export function createGlobe(wrap, canvas) {
   }
   clampPointsMinRadius(arcPts, ROUTE_MIN_R);
 
+  const ARROW_H = 0.088;
+  const ARROW_R = 0.044;
+  const arrowMat = new THREE.MeshStandardMaterial({
+    color: 0x1565c0,
+    emissive: 0x0d47a1,
+    emissiveIntensity: 0.45,
+    metalness: 0.22,
+    roughness: 0.32
+  });
+
+  const fwd0 = arcPts[1].clone().sub(arcPts[0]).normalize();
+  const fwd1 = arcPts[arcPts.length - 1].clone().sub(arcPts[arcPts.length - 2]).normalize();
+
+  /** One connected <----------> piece: cone base on `basePoint`, tip along `tipDir` (unit). */
+  function addArrowHeadOnRibbon(basePoint, tipDir) {
+    const d = tipDir.clone().normalize();
+    if (d.lengthSq() < 1e-10) return;
+    const cone = new THREE.Mesh(new THREE.ConeGeometry(ARROW_R, ARROW_H, 12), arrowMat);
+    cone.geometry.translate(0, ARROW_H / 2, 0);
+    const g = new THREE.Group();
+    g.position.copy(basePoint);
+    g.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d);
+    cone.renderOrder = 5;
+    g.renderOrder = 5;
+    g.add(cone);
+    markerRoot.add(g);
+  }
+
+  addArrowHeadOnRibbon(arcPts[0].clone(), fwd0.clone().multiplyScalar(-1));
+  addArrowHeadOnRibbon(arcPts[arcPts.length - 1].clone(), fwd1);
+
   const arcPosFlat = [];
   for (let i = 0; i < arcPts.length; i += 1) {
     arcPosFlat.push(arcPts[i].x, arcPts[i].y, arcPts[i].z);
@@ -275,39 +306,6 @@ export function createGlobe(wrap, canvas) {
   arcLine.computeLineDistances();
   arcLine.renderOrder = 4;
   markerRoot.add(arcLine);
-
-  const ARROW_H = 0.088;
-  const ARROW_R = 0.044;
-  const arrowMat = new THREE.MeshStandardMaterial({
-    color: 0x42a5f5,
-    emissive: 0x0d47a1,
-    emissiveIntensity: 0.45,
-    metalness: 0.22,
-    roughness: 0.32
-  });
-
-  const ARROW_GAP_FROM_PIN = 0.11;
-
-  /** Cone axis points toward `pinAnchor`; tip stops short so it does not touch the pin. */
-  function addArrowTowardPin(pinAnchor, curveT) {
-    const ref = clampMinRadius(routeCurve.getPoint(curveT).clone(), ROUTE_MIN_R);
-    const dir = pinAnchor.clone().sub(ref).normalize();
-    if (dir.lengthSq() < 1e-10) return;
-    const tipPos = pinAnchor.clone().sub(dir.clone().multiplyScalar(ARROW_GAP_FROM_PIN));
-    const basePos = tipPos.clone().sub(dir.clone().multiplyScalar(ARROW_H));
-    const cone = new THREE.Mesh(new THREE.ConeGeometry(ARROW_R, ARROW_H, 12), arrowMat);
-    cone.geometry.translate(0, ARROW_H / 2, 0);
-    const g = new THREE.Group();
-    g.position.copy(basePos);
-    g.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
-    cone.renderOrder = 5;
-    g.renderOrder = 5;
-    g.add(cone);
-    markerRoot.add(g);
-  }
-
-  addArrowTowardPin(ndPos, 0.055);
-  addArrowTowardPin(rwPos, 0.945);
 
   function pinLabelPosition(anchor) {
     const n = anchor.clone().normalize();
