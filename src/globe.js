@@ -50,7 +50,19 @@ function createMapPinGroup(redMat, headDotMat) {
   return group;
 }
 
-function buildBouncyRoute(start, end) {
+function clampMinRadius(v, minR) {
+  const len = v.length();
+  if (len < minR) v.normalize().multiplyScalar(minR);
+  return v;
+}
+
+function clampPointsMinRadius(points, minR) {
+  for (let i = 0; i < points.length; i += 1) {
+    clampMinRadius(points[i], minR);
+  }
+}
+
+function buildBouncyRoute(start, end, minRadius) {
   const pts = [];
   const knots = 13;
   const chordLen = start.distanceTo(end);
@@ -72,7 +84,8 @@ function buildBouncyRoute(start, end) {
     out.add(side.clone().multiplyScalar(wobble * env * chordLen * 0.16));
     out.add(mate.clone().multiplyScalar(Math.cos(t * Math.PI * 3.4) * env * chordLen * 0.1));
     out.add(radial.multiplyScalar(springUp * 0.4));
-    pts.push(base.add(out));
+    const p = base.add(out);
+    pts.push(clampMinRadius(p, minRadius));
   }
   return new THREE.CatmullRomCurve3(pts, false, "centripetal", 0.45);
 }
@@ -216,12 +229,31 @@ export function createGlobe(wrap, canvas) {
   addMapPin(rwPos);
   pulseMarkers.push({ coreMat: pinMat, pulsePhase: 0 });
 
-  const ROUTE_LIFT = 0.075;
-  const routeStart = ndPos.clone().normalize().multiplyScalar(ndPos.length() + ROUTE_LIFT);
-  const routeEnd = rwPos.clone().normalize().multiplyScalar(rwPos.length() + ROUTE_LIFT);
-  const routeCurve = buildBouncyRoute(routeStart, routeEnd);
+  const CLOUD_SHELL_R = 1.465;
+  const ROUTE_MIN_R = Math.max(PIN_RADIUS + 0.02, CLOUD_SHELL_R + 0.048);
 
-  const arcPts = routeCurve.getPoints(200);
+  const ROUTE_LIFT = 0.09;
+  const routeStart = clampMinRadius(
+    ndPos.clone().normalize().multiplyScalar(ndPos.length() + ROUTE_LIFT),
+    ROUTE_MIN_R
+  );
+  const routeEnd = clampMinRadius(
+    rwPos.clone().normalize().multiplyScalar(rwPos.length() + ROUTE_LIFT),
+    ROUTE_MIN_R
+  );
+  const routeCurve = buildBouncyRoute(routeStart, routeEnd, ROUTE_MIN_R);
+
+  const T_LINE0 = 0.1;
+  const T_LINE1 = 0.9;
+  const lineSegs = 220;
+  const arcPts = [];
+  for (let i = 0; i <= lineSegs; i += 1) {
+    const uu = i / lineSegs;
+    const t = T_LINE0 + (T_LINE1 - T_LINE0) * uu;
+    arcPts.push(routeCurve.getPoint(t).clone());
+  }
+  clampPointsMinRadius(arcPts, ROUTE_MIN_R);
+
   const arcPosFlat = [];
   for (let i = 0; i < arcPts.length; i += 1) {
     arcPosFlat.push(arcPts[i].x, arcPts[i].y, arcPts[i].z);
@@ -254,29 +286,28 @@ export function createGlobe(wrap, canvas) {
     roughness: 0.32
   });
 
-  /** Cone tip sits at `anchor`; axis follows `dir` (direction of travel into the tip). */
-  function addArrowAtEnd(anchor, dir) {
-    const d = dir.clone().normalize();
+  const ARROW_GAP_FROM_PIN = 0.11;
+
+  /** Cone axis points toward `pinAnchor`; tip stops short so it does not touch the pin. */
+  function addArrowTowardPin(pinAnchor, curveT) {
+    const ref = clampMinRadius(routeCurve.getPoint(curveT).clone(), ROUTE_MIN_R);
+    const dir = pinAnchor.clone().sub(ref).normalize();
+    if (dir.lengthSq() < 1e-10) return;
+    const tipPos = pinAnchor.clone().sub(dir.clone().multiplyScalar(ARROW_GAP_FROM_PIN));
+    const basePos = tipPos.clone().sub(dir.clone().multiplyScalar(ARROW_H));
     const cone = new THREE.Mesh(new THREE.ConeGeometry(ARROW_R, ARROW_H, 12), arrowMat);
     cone.geometry.translate(0, ARROW_H / 2, 0);
     const g = new THREE.Group();
-    g.position.copy(anchor.clone().sub(d.clone().multiplyScalar(ARROW_H)));
-    g.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d);
+    g.position.copy(basePos);
+    g.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
     cone.renderOrder = 5;
     g.renderOrder = 5;
     g.add(cone);
     markerRoot.add(g);
   }
 
-  const eps = 0.004;
-  const pA = routeCurve.getPoint(0);
-  const pA2 = routeCurve.getPoint(Math.min(eps, 0.02));
-  const dirStart = pA2.clone().sub(pA).normalize();
-  const pB = routeCurve.getPoint(1);
-  const pB0 = routeCurve.getPoint(Math.max(0, 1 - Math.min(eps, 0.02)));
-  const dirEnd = pB.clone().sub(pB0).normalize();
-  addArrowAtEnd(pA, dirStart);
-  addArrowAtEnd(pB, dirEnd);
+  addArrowTowardPin(ndPos, 0.055);
+  addArrowTowardPin(rwPos, 0.945);
 
   function pinLabelPosition(anchor) {
     const n = anchor.clone().normalize();
