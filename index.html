@@ -203,7 +203,19 @@
     import { OrbitControls } from "https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js";
 
     const wrap = document.getElementById("globe-wrap");
-    const canvas = document.getElementById("globe-canvas");
+    const canvas = wrap ? wrap.querySelector("canvas") : null;
+    const globeCanvasCount = document.querySelectorAll("#globe-canvas").length;
+    if (globeCanvasCount > 1) {
+      console.warn("[globe] Multiple elements with id globe-canvas:", globeCanvasCount);
+    }
+    if (!wrap || !canvas) {
+      console.error("[globe] Missing #globe-wrap or <canvas> inside it.", {
+        hasWrap: Boolean(wrap),
+        hasCanvas: Boolean(canvas)
+      });
+      throw new Error("[globe] init failed");
+    }
+
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 120);
     // Start farther back so the globe sits deeper.
@@ -327,9 +339,18 @@
     );
     scene.add(stars);
 
+    let warnedZeroSize = false;
     function resize() {
       const w = wrap.clientWidth;
       const h = wrap.clientHeight;
+      if (!warnedZeroSize && (w === 0 || h === 0)) {
+        warnedZeroSize = true;
+        console.warn("[globe] #globe-wrap has zero drawable size — WebGL buffer may be blank.", {
+          clientWidth: w,
+          clientHeight: h,
+          boundingRect: wrap.getBoundingClientRect()
+        });
+      }
       renderer.setSize(w, h, false);
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
