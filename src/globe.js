@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { CSS2DObject, CSS2DRenderer } from "three/addons/renderers/CSS2DRenderer.js";
 
 const base = import.meta.env.BASE_URL.endsWith("/")
   ? import.meta.env.BASE_URL
@@ -18,6 +19,11 @@ function latLonToGlobeLocal(latDeg, lonDeg, radius) {
     radius * Math.cos(phi),
     radius * Math.sin(phi) * Math.sin(theta)
   );
+}
+
+function parabolicArcControl(a, b, radius, bulge) {
+  const mid = new THREE.Vector3().addVectors(a, b).multiplyScalar(0.5);
+  return mid.normalize().multiplyScalar(radius + bulge);
 }
 
 export function createGlobe(wrap, canvas) {
@@ -128,8 +134,10 @@ export function createGlobe(wrap, canvas) {
   const PIN_RADIUS = 1.492;
   const pulseMarkers = [];
 
-  function addCityHighlight(latDeg, lonDeg, colorHex, pulsePhase = 0) {
-    const center = latLonToGlobeLocal(latDeg, lonDeg, PIN_RADIUS);
+  const ndPos = latLonToGlobeLocal(41.7031, -86.2384, PIN_RADIUS);
+  const rwPos = latLonToGlobeLocal(-1.944, 30.0619, PIN_RADIUS);
+
+  function addCityHighlightAt(center, colorHex, pulsePhase = 0) {
     const coreMat = new THREE.MeshStandardMaterial({
       color: colorHex,
       emissive: colorHex,
@@ -153,8 +161,48 @@ export function createGlobe(wrap, canvas) {
     pulseMarkers.push({ coreMat, pulsePhase });
   }
 
-  addCityHighlight(41.7031, -86.2384, 0xe8b923, 0);
-  addCityHighlight(-1.944, 30.0619, 0x26c6da, 1.7);
+  addCityHighlightAt(ndPos, 0xe8b923, 0);
+  addCityHighlightAt(rwPos, 0x26c6da, 1.7);
+
+  const arcBulge = 0.56;
+  const arcCurve = new THREE.QuadraticBezierCurve3(
+    ndPos.clone(),
+    parabolicArcControl(ndPos, rwPos, PIN_RADIUS, arcBulge),
+    rwPos.clone()
+  );
+  const arcGeo = new THREE.BufferGeometry().setFromPoints(arcCurve.getPoints(100));
+  const arcMat = new THREE.LineBasicMaterial({
+    color: 0xa8dcff,
+    transparent: true,
+    opacity: 0.82
+  });
+  const arcLine = new THREE.Line(arcGeo, arcMat);
+  arcLine.renderOrder = 2;
+  markerRoot.add(arcLine);
+
+  function addGlobeLabel(text, anchor) {
+    const el = document.createElement("div");
+    el.className = "globe-label";
+    el.textContent = text;
+    const label = new CSS2DObject(el);
+    const lift = 0.13;
+    label.position.copy(anchor.clone().normalize().multiplyScalar(anchor.length() + lift));
+    label.center.set(0.5, 1);
+    markerRoot.add(label);
+    return label;
+  }
+
+  addGlobeLabel("Notre Dame (Home)", ndPos);
+  addGlobeLabel("Rwanda (Home)", rwPos);
+
+  const labelRenderer = new CSS2DRenderer();
+  labelRenderer.setSize(wrap.clientWidth, wrap.clientHeight);
+  labelRenderer.domElement.style.position = "absolute";
+  labelRenderer.domElement.style.top = "0";
+  labelRenderer.domElement.style.left = "0";
+  labelRenderer.domElement.style.pointerEvents = "none";
+  labelRenderer.domElement.style.zIndex = "1";
+  wrap.appendChild(labelRenderer.domElement);
 
   const starGeo = new THREE.BufferGeometry();
   const starCount = 220;
@@ -195,6 +243,7 @@ export function createGlobe(wrap, canvas) {
       });
     }
     renderer.setSize(w, h, false);
+    labelRenderer.setSize(w, h);
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
   }
@@ -225,6 +274,7 @@ export function createGlobe(wrap, canvas) {
     globeGroup.position.y = Math.sin(t * 0.8) * 0.06;
     controls.update();
     renderer.render(scene, camera);
+    labelRenderer.render(scene, camera);
     raf = requestAnimationFrame(animate);
   }
   animate();
@@ -233,6 +283,9 @@ export function createGlobe(wrap, canvas) {
     cancelAnimationFrame(raf);
     window.removeEventListener("resize", resize);
     if (ro) ro.disconnect();
+    if (labelRenderer.domElement.parentNode === wrap) {
+      wrap.removeChild(labelRenderer.domElement);
+    }
     controls.dispose();
     renderer.dispose();
     globeMat.dispose();
