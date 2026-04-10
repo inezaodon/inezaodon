@@ -24,9 +24,57 @@ function latLonToGlobeLocal(latDeg, lonDeg, radius) {
   );
 }
 
-function parabolicArcControl(a, b, radius, bulge) {
-  const mid = new THREE.Vector3().addVectors(a, b).multiplyScalar(0.5);
-  return mid.normalize().multiplyScalar(radius + bulge);
+/** Max Y of lathe profile: tip at ground, head up +Y (map pin height for label offset). */
+const MAP_PIN_TIP_TO_HEAD = 0.137;
+
+/** Inverted teardrop: tip at y=0, round head at top (classic map pin silhouette). */
+function createMapPinGroup(redMat, headDotMat) {
+  const profile = [
+    new THREE.Vector2(0.0012, 0),
+    new THREE.Vector2(0.011, 0.019),
+    new THREE.Vector2(0.03, 0.048),
+    new THREE.Vector2(0.046, 0.076),
+    new THREE.Vector2(0.053, 0.098),
+    new THREE.Vector2(0.048, 0.115),
+    new THREE.Vector2(0.032, 0.128),
+    new THREE.Vector2(0.014, 0.135),
+    new THREE.Vector2(0, MAP_PIN_TIP_TO_HEAD)
+  ];
+  const body = new THREE.Mesh(new THREE.LatheGeometry(profile, 26), redMat);
+  const headDot = new THREE.Mesh(new THREE.SphereGeometry(0.017, 14, 14), headDotMat);
+  headDot.position.set(0, 0.118, 0);
+  headDot.renderOrder = 7;
+  body.renderOrder = 6;
+  const group = new THREE.Group();
+  group.add(body, headDot);
+  return group;
+}
+
+function buildBouncyRoute(start, end) {
+  const pts = [];
+  const knots = 13;
+  const chordLen = start.distanceTo(end);
+  const u = new THREE.Vector3().subVectors(end, start).normalize();
+  let side = new THREE.Vector3(0, 1, 0).cross(u);
+  if (side.lengthSq() < 1e-8) side = new THREE.Vector3(1, 0, 0).cross(u);
+  side.normalize();
+  const mate = new THREE.Vector3().crossVectors(u, side).normalize();
+
+  for (let i = 0; i < knots; i += 1) {
+    const t = i / (knots - 1);
+    const base = start.clone().lerp(end, t);
+    const radial = base.clone().normalize();
+    const env = Math.sin(t * Math.PI);
+    const wobble =
+      Math.sin(t * Math.PI * 5.2) * 0.28 + Math.sin(t * Math.PI * 8.4 + 0.9) * 0.12 + Math.cos(t * Math.PI * 11) * 0.06;
+    const springUp = Math.sin(t * Math.PI) * 0.52;
+    const out = new THREE.Vector3(0, 0, 0);
+    out.add(side.clone().multiplyScalar(wobble * env * chordLen * 0.16));
+    out.add(mate.clone().multiplyScalar(Math.cos(t * Math.PI * 3.4) * env * chordLen * 0.1));
+    out.add(radial.multiplyScalar(springUp * 0.4));
+    pts.push(base.add(out));
+  }
+  return new THREE.CatmullRomCurve3(pts, false, "centripetal", 0.45);
 }
 
 export function createGlobe(wrap, canvas) {
@@ -140,8 +188,6 @@ export function createGlobe(wrap, canvas) {
   const ndPos = latLonToGlobeLocal(41.7031, -86.2384, PIN_RADIUS);
   const rwPos = latLonToGlobeLocal(-1.944, 30.0619, PIN_RADIUS);
 
-  const PIN_HEIGHT = 0.1;
-  const PIN_RADIUS_CONE = 0.034;
   const pinMat = new THREE.MeshStandardMaterial({
     color: 0xc62828,
     emissive: 0xff1744,
@@ -149,32 +195,33 @@ export function createGlobe(wrap, canvas) {
     metalness: 0.14,
     roughness: 0.42
   });
+  const pinHeadDotMat = new THREE.MeshStandardMaterial({
+    color: 0xfafafa,
+    roughness: 0.35,
+    metalness: 0.06,
+    emissive: 0x222222,
+    emissiveIntensity: 0.08
+  });
 
-  function addRedPin(anchor) {
+  function addMapPin(anchor) {
     const normal = anchor.clone().normalize();
-    const cone = new THREE.Mesh(new THREE.ConeGeometry(PIN_RADIUS_CONE, PIN_HEIGHT, 14), pinMat);
-    cone.geometry.translate(0, PIN_HEIGHT / 2, 0);
-    const group = new THREE.Group();
+    const group = createMapPinGroup(pinMat, pinHeadDotMat);
     group.position.copy(anchor);
     group.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), normal);
-    cone.renderOrder = 6;
     group.renderOrder = 6;
-    group.add(cone);
     markerRoot.add(group);
   }
 
-  addRedPin(ndPos);
-  addRedPin(rwPos);
+  addMapPin(ndPos);
+  addMapPin(rwPos);
   pulseMarkers.push({ coreMat: pinMat, pulsePhase: 0 });
 
-  const arcBulge = 0.56;
-  const arcCurve = new THREE.QuadraticBezierCurve3(
-    ndPos.clone(),
-    parabolicArcControl(ndPos, rwPos, PIN_RADIUS, arcBulge),
-    rwPos.clone()
-  );
+  const ROUTE_LIFT = 0.075;
+  const routeStart = ndPos.clone().normalize().multiplyScalar(ndPos.length() + ROUTE_LIFT);
+  const routeEnd = rwPos.clone().normalize().multiplyScalar(rwPos.length() + ROUTE_LIFT);
+  const routeCurve = buildBouncyRoute(routeStart, routeEnd);
 
-  const arcPts = arcCurve.getPoints(128);
+  const arcPts = routeCurve.getPoints(200);
   const arcPosFlat = [];
   for (let i = 0; i < arcPts.length; i += 1) {
     arcPosFlat.push(arcPts[i].x, arcPts[i].y, arcPts[i].z);
@@ -197,8 +244,8 @@ export function createGlobe(wrap, canvas) {
   arcLine.renderOrder = 4;
   markerRoot.add(arcLine);
 
-  const ARROW_H = 0.095;
-  const ARROW_R = 0.048;
+  const ARROW_H = 0.088;
+  const ARROW_R = 0.044;
   const arrowMat = new THREE.MeshStandardMaterial({
     color: 0x42a5f5,
     emissive: 0x0d47a1,
@@ -207,8 +254,9 @@ export function createGlobe(wrap, canvas) {
     roughness: 0.32
   });
 
-  function addArrowAtEnd(anchor, dirAlongArrow) {
-    const d = dirAlongArrow.clone().normalize();
+  /** Cone tip sits at `anchor`; axis follows `dir` (direction of travel into the tip). */
+  function addArrowAtEnd(anchor, dir) {
+    const d = dir.clone().normalize();
     const cone = new THREE.Mesh(new THREE.ConeGeometry(ARROW_R, ARROW_H, 12), arrowMat);
     cone.geometry.translate(0, ARROW_H / 2, 0);
     const g = new THREE.Group();
@@ -220,14 +268,19 @@ export function createGlobe(wrap, canvas) {
     markerRoot.add(g);
   }
 
-  const tanStart = arcCurve.getTangentAt(0).normalize();
-  const tanEnd = arcCurve.getTangentAt(1).normalize();
-  addArrowAtEnd(ndPos, tanStart);
-  addArrowAtEnd(rwPos, tanEnd);
+  const eps = 0.004;
+  const pA = routeCurve.getPoint(0);
+  const pA2 = routeCurve.getPoint(Math.min(eps, 0.02));
+  const dirStart = pA2.clone().sub(pA).normalize();
+  const pB = routeCurve.getPoint(1);
+  const pB0 = routeCurve.getPoint(Math.max(0, 1 - Math.min(eps, 0.02)));
+  const dirEnd = pB.clone().sub(pB0).normalize();
+  addArrowAtEnd(pA, dirStart);
+  addArrowAtEnd(pB, dirEnd);
 
   function pinLabelPosition(anchor) {
     const n = anchor.clone().normalize();
-    return anchor.clone().add(n.multiplyScalar(PIN_HEIGHT + 0.14));
+    return anchor.clone().add(n.multiplyScalar(MAP_PIN_TIP_TO_HEAD + 0.12));
   }
 
   function addGlobeLabel(text, position) {
