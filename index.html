@@ -3,223 +3,349 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Rwanda to Notre Dame</title>
+  <title>Ineza Odon</title>
   <style>
     :root {
-      --bg: #0b1020;
-      --panel: #141a33;
-      --text: #e9eeff;
-      --muted: #b7c1e6;
-      --accent: #7cd4ff;
-      --gold: #ffcf57;
-      --route: #6df1b2;
+      --bg: #0f1115;
+      --surface: #161a22;
+      --line: #2a3040;
+      --text: #f5f7ff;
+      --muted: #acb3c7;
+      --accent: #7ca9ff;
+      --accent-soft: rgba(124, 169, 255, 0.14);
+      --max: 1040px;
     }
 
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
-      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
 
     body {
-      min-height: 100vh;
-      display: grid;
-      place-items: center;
-      background: radial-gradient(circle at 20% 20%, #1d2958 0%, var(--bg) 50%, #070b17 100%);
+      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: radial-gradient(1600px 900px at 0% -20%, #1c2438, var(--bg) 55%);
       color: var(--text);
-      padding: 24px;
+      line-height: 1.6;
+    }
+
+    .container {
+      width: min(var(--max), 92%);
+      margin: 0 auto;
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(15, 17, 21, 0.88);
+      backdrop-filter: blur(10px);
+    }
+
+    .nav {
+      height: 68px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .brand {
+      font-weight: 700;
+      letter-spacing: 0.4px;
+      text-decoration: none;
+      color: var(--text);
+    }
+
+    nav ul {
+      display: flex;
+      list-style: none;
+      gap: 20px;
+    }
+
+    nav a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.95rem;
+      transition: color 140ms ease;
+    }
+
+    nav a:hover,
+    nav a:focus-visible {
+      color: var(--text);
+    }
+
+    .hero {
+      padding: 86px 0 52px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .hero h1 {
+      max-width: 850px;
+      font-size: clamp(2rem, 4vw, 3.6rem);
+      line-height: 1.08;
+      margin-bottom: 16px;
+    }
+
+    .hero p {
+      max-width: 760px;
+      color: var(--muted);
+      font-size: 1.05rem;
+    }
+
+    .hero-actions {
+      margin-top: 28px;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      border-radius: 999px;
+      padding: 11px 18px;
+      border: 1px solid var(--line);
+      color: var(--text);
+      background: var(--surface);
+      font-weight: 600;
+      transition: transform 120ms ease, border-color 120ms ease, background 120ms ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      border-color: #5c6a94;
+    }
+
+    .btn.primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #0a1022;
+    }
+
+    .btn.primary:hover {
+      background: #93b8ff;
+      border-color: #93b8ff;
+    }
+
+    section {
+      padding: 52px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    h2 {
+      font-size: 1.55rem;
+      margin-bottom: 14px;
+    }
+
+    .section-intro {
+      color: var(--muted);
+      margin-bottom: 26px;
+      max-width: 760px;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
     }
 
     .card {
-      width: min(920px, 100%);
-      background: linear-gradient(160deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
-      border: 1px solid rgba(255, 255, 255, 0.16);
-      backdrop-filter: blur(8px);
-      border-radius: 20px;
-      padding: 28px;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 18px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01));
     }
 
-    h1 {
-      font-size: clamp(1.4rem, 2.2vw, 2rem);
-      line-height: 1.2;
-      margin-bottom: 10px;
+    .card h3 {
+      font-size: 1.08rem;
+      margin-bottom: 7px;
     }
 
-    .subtitle {
+    .card p {
       color: var(--muted);
-      margin-bottom: 24px;
-      font-size: 0.98rem;
+      font-size: 0.95rem;
     }
 
-    .scene {
-      width: 100%;
-      border-radius: 16px;
-      overflow: hidden;
-      background: #0f1630;
-      border: 1px solid rgba(255, 255, 255, 0.14);
+    .chip {
+      display: inline-block;
+      margin-top: 12px;
+      font-size: 0.77rem;
+      color: #c6d8ff;
+      background: var(--accent-soft);
+      border: 1px solid rgba(124, 169, 255, 0.32);
+      border-radius: 999px;
+      padding: 4px 10px;
     }
 
-    svg {
-      width: 100%;
-      height: auto;
-      display: block;
+    .list {
+      display: grid;
+      gap: 14px;
     }
 
-    .label {
-      fill: #dce4ff;
-      font-size: 14px;
-      font-weight: 600;
-      letter-spacing: 0.2px;
+    .list-item {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 16px 18px;
+      background: rgba(255, 255, 255, 0.02);
     }
 
-    .map-shape {
-      fill: #24315f;
-      stroke: #6174b4;
-      stroke-width: 2;
-      opacity: 0.92;
+    .list-item h3 {
+      font-size: 1.02rem;
+      margin-bottom: 3px;
     }
 
-    .route-line {
-      fill: none;
-      stroke: var(--route);
-      stroke-width: 3;
-      stroke-linecap: round;
-      stroke-dasharray: 8 8;
-      animation: dash 1.3s linear infinite;
-      filter: drop-shadow(0 0 4px rgba(109, 241, 178, 0.7));
+    .meta {
+      font-size: 0.86rem;
+      color: #97a2c2;
     }
 
-    .city-dot {
-      fill: var(--gold);
-      stroke: #3a2c00;
-      stroke-width: 1.5;
+    footer {
+      padding: 34px 0 56px;
     }
 
-    .plane {
-      font-size: 22px;
-      transform-box: fill-box;
-      transform-origin: center;
-      animation: fly 7s ease-in-out infinite;
-      filter: drop-shadow(0 0 6px rgba(124, 212, 255, 0.6));
-    }
-
-    .guy-body {
-      fill: #78b4ff;
-    }
-
-    .guy-head {
-      fill: #ffd7b0;
-      stroke: #6f4c2d;
-      stroke-width: 1.2;
-    }
-
-    .pen {
-      fill: #f4f7ff;
-      stroke: #3f4b7f;
-      stroke-width: 1.2;
-    }
-
-    .cta {
-      margin-top: 18px;
-      display: inline-flex;
+    .foot {
+      display: flex;
       align-items: center;
-      gap: 10px;
-      padding: 10px 14px;
-      border-radius: 10px;
-      border: 1px solid rgba(124, 212, 255, 0.55);
-      background: rgba(124, 212, 255, 0.08);
-      color: #dff6ff;
-      text-decoration: none;
-      font-weight: 600;
-      transition: transform 120ms ease, background 120ms ease;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
     }
 
-    .cta:hover {
-      transform: translateY(-1px);
-      background: rgba(124, 212, 255, 0.16);
+    .foot p {
+      color: var(--muted);
+      font-size: 0.93rem;
     }
 
-    @keyframes dash {
-      to {
-        stroke-dashoffset: -16;
+    @media (max-width: 700px) {
+      nav ul {
+        gap: 12px;
       }
-    }
-
-    @keyframes fly {
-      0% {
-        transform: translate(0px, 0px) rotate(-10deg);
+      nav a {
+        font-size: 0.87rem;
       }
-      45% {
-        transform: translate(335px, -70px) rotate(-2deg);
+      .hero {
+        padding-top: 66px;
       }
-      55% {
-        transform: translate(365px, -64px) rotate(2deg);
-      }
-      100% {
-        transform: translate(700px, -24px) rotate(10deg);
-      }
-    }
-
-    @media (max-width: 720px) {
-      .card {
-        padding: 18px;
-      }
-      .subtitle {
-        font-size: 0.92rem;
+      .hero-actions {
+        flex-direction: column;
+        align-items: flex-start;
       }
     }
   </style>
 </head>
 <body>
-  <main class="card">
-    <h1>From Rwanda to Notre Dame, Indiana</h1>
-    <p class="subtitle">A small animated journey map and a quick way to visit your personal website.</p>
-
-    <div class="scene">
-      <svg viewBox="0 0 900 420" aria-labelledby="title desc" role="img">
-        <title id="title">Animated route map from Rwanda to Notre Dame</title>
-        <desc id="desc">A stylized map with an animated plane and a person holding a pen toward a website link.</desc>
-
-        <rect x="0" y="0" width="900" height="420" fill="#0f1630" />
-
-        <ellipse class="map-shape" cx="190" cy="230" rx="130" ry="92" />
-        <ellipse class="map-shape" cx="710" cy="180" rx="150" ry="105" />
-        <ellipse class="map-shape" cx="455" cy="258" rx="190" ry="62" opacity="0.35" />
-
-        <circle class="city-dot" cx="205" cy="220" r="6" />
-        <circle class="city-dot" cx="710" cy="170" r="6" />
-
-        <text class="label" x="148" y="248">Rwanda</text>
-        <text class="label" x="618" y="200">Notre Dame, Indiana</text>
-
-        <path class="route-line" d="M205,220 C350,120 540,120 710,170" />
-        <text id="plane" class="plane" x="190" y="228">✈️</text>
-
-        <!-- Small person -->
-        <circle class="guy-head" cx="130" cy="350" r="16" />
-        <rect class="guy-body" x="116" y="366" width="28" height="42" rx="8" />
-        <line x1="116" y1="380" x2="95" y2="396" stroke="#78b4ff" stroke-width="6" stroke-linecap="round" />
-        <line x1="144" y1="380" x2="178" y2="350" stroke="#78b4ff" stroke-width="6" stroke-linecap="round" />
-        <line x1="124" y1="408" x2="112" y2="420" stroke="#78b4ff" stroke-width="6" stroke-linecap="round" />
-        <line x1="137" y1="408" x2="154" y2="420" stroke="#78b4ff" stroke-width="6" stroke-linecap="round" />
-
-        <!-- Big pen in hand -->
-        <g transform="rotate(-18 210 325)">
-          <rect class="pen" x="160" y="318" width="170" height="16" rx="8" />
-          <polygon class="pen" points="330,326 352,322 352,330" fill="#ffe8b5" />
-        </g>
-
-        <!-- Pen direction marker -->
-        <text class="label" x="364" y="334">Visit: https://10124.vercel.app</text>
-      </svg>
+  <header>
+    <div class="container nav">
+      <a href="#" class="brand">Ineza Odon</a>
+      <nav aria-label="Primary">
+        <ul>
+          <li><a href="#about">About</a></li>
+          <li><a href="#projects">Projects</a></li>
+          <li><a href="#blog">Blog</a></li>
+          <li><a href="#essays">Essays</a></li>
+        </ul>
+      </nav>
     </div>
+  </header>
 
-    <a class="cta" href="https://10124.vercel.app" target="_blank" rel="noopener noreferrer">
-      Open Personal Website
-      <span aria-hidden="true">↗</span>
-    </a>
+  <main>
+    <section class="hero">
+      <div class="container">
+        <h1>Computer science student building practical software with clear impact.</h1>
+        <p>
+          I am focused on full-stack engineering, cloud-native systems, and thoughtful product execution.
+          I care about shipping useful tools, documenting what I learn, and collaborating on meaningful work.
+        </p>
+        <div class="hero-actions">
+          <a class="btn primary" href="https://10124.vercel.app" target="_blank" rel="noopener noreferrer">Visit Personal Website</a>
+          <a class="btn" href="#projects">Explore Projects</a>
+        </div>
+      </div>
+    </section>
+
+    <section id="about">
+      <div class="container">
+        <h2>About</h2>
+        <p class="section-intro">
+          I am a Computer Science student at the University of Notre Dame with interests in web engineering,
+          infrastructure reliability, and technical storytelling. I enjoy building products that connect strong
+          engineering fundamentals with user outcomes.
+        </p>
+      </div>
+    </section>
+
+    <section id="projects">
+      <div class="container">
+        <h2>Projects</h2>
+        <p class="section-intro">A few hands-on projects with real code and measurable outcomes.</p>
+        <div class="cards">
+          <article class="card">
+            <h3>Portfolio</h3>
+            <p>Next.js portfolio with live integrations, project storytelling, and contact workflow support.</p>
+            <span class="chip">Web Development</span>
+          </article>
+          <article class="card">
+            <h3>Nanochat</h3>
+            <p>Educational GPT-style app exploring tokenization, embeddings, and model behavior in-browser.</p>
+            <span class="chip">AI Learning</span>
+          </article>
+          <article class="card">
+            <h3>Brilliant Sciences</h3>
+            <p>Education platform supporting course delivery, progress tracking, and streamlined content access.</p>
+            <span class="chip">Full Stack</span>
+          </article>
+          <article class="card">
+            <h3>NYC Taxi Plots</h3>
+            <p>Visualization-focused analytics dashboard built with Python and Plotly multi-page workflows.</p>
+            <span class="chip">Data Visualization</span>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="blog">
+      <div class="container">
+        <h2>From the Blog</h2>
+        <p class="section-intro">Short writing on building, learning, and shipping software.</p>
+        <div class="list">
+          <article class="list-item">
+            <h3>Predictive Technologies and Justice in Sub-Saharan Africa</h3>
+            <p class="meta">Research Evaluation • 8 min read</p>
+          </article>
+          <article class="list-item">
+            <h3>Morality in the Northern Renaissance Workplace</h3>
+            <p class="meta">Academic Essay • 6 min read</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="essays">
+      <div class="container">
+        <h2>Essays</h2>
+        <p class="section-intro">Longer-form writing at the intersection of technology, ethics, and society.</p>
+        <div class="list">
+          <article class="list-item">
+            <h3>Build Your Own Empire: Rhetorical Analysis</h3>
+            <p class="meta">Academic Essay • Communication and impact</p>
+          </article>
+          <article class="list-item">
+            <h3>Further Up &amp; Further In Discussion Guide</h3>
+            <p class="meta">Reference Material • Structured reflection prompts</p>
+          </article>
+        </div>
+      </div>
+    </section>
   </main>
+
+  <footer>
+    <div class="container foot">
+      <p>Open to internships and collaborations.</p>
+      <a class="btn" href="https://10124.vercel.app" target="_blank" rel="noopener noreferrer">10124.vercel.app</a>
+    </div>
+  </footer>
 </body>
 </html>
