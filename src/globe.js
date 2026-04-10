@@ -1,6 +1,9 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { CSS2DObject, CSS2DRenderer } from "three/addons/renderers/CSS2DRenderer.js";
+import { Line2 } from "three/addons/lines/Line2.js";
+import { LineGeometry } from "three/addons/lines/LineGeometry.js";
+import { LineMaterial } from "three/addons/lines/LineMaterial.js";
 
 const base = import.meta.env.BASE_URL.endsWith("/")
   ? import.meta.env.BASE_URL
@@ -137,32 +140,32 @@ export function createGlobe(wrap, canvas) {
   const ndPos = latLonToGlobeLocal(41.7031, -86.2384, PIN_RADIUS);
   const rwPos = latLonToGlobeLocal(-1.944, 30.0619, PIN_RADIUS);
 
-  function addCityHighlightAt(center, colorHex, pulsePhase = 0) {
-    const coreMat = new THREE.MeshStandardMaterial({
-      color: colorHex,
-      emissive: colorHex,
-      emissiveIntensity: 1.35,
-      metalness: 0.22,
-      roughness: 0.38
-    });
-    const core = new THREE.Mesh(new THREE.SphereGeometry(0.05, 22, 22), coreMat);
-    core.position.copy(center);
-    const haloMat = new THREE.MeshBasicMaterial({
-      color: colorHex,
-      transparent: true,
-      opacity: 0.38,
-      depthWrite: false
-    });
-    const halo = new THREE.Mesh(new THREE.SphereGeometry(0.1, 28, 28), haloMat);
-    halo.position.copy(center);
-    halo.renderOrder = 2;
-    core.renderOrder = 3;
-    markerRoot.add(halo, core);
-    pulseMarkers.push({ coreMat, pulsePhase });
+  const PIN_HEIGHT = 0.1;
+  const PIN_RADIUS_CONE = 0.034;
+  const pinMat = new THREE.MeshStandardMaterial({
+    color: 0xc62828,
+    emissive: 0xff1744,
+    emissiveIntensity: 0.4,
+    metalness: 0.14,
+    roughness: 0.42
+  });
+
+  function addRedPin(anchor) {
+    const normal = anchor.clone().normalize();
+    const cone = new THREE.Mesh(new THREE.ConeGeometry(PIN_RADIUS_CONE, PIN_HEIGHT, 14), pinMat);
+    cone.geometry.translate(0, PIN_HEIGHT / 2, 0);
+    const group = new THREE.Group();
+    group.position.copy(anchor);
+    group.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), normal);
+    cone.renderOrder = 6;
+    group.renderOrder = 6;
+    group.add(cone);
+    markerRoot.add(group);
   }
 
-  addCityHighlightAt(ndPos, 0xe8b923, 0);
-  addCityHighlightAt(rwPos, 0x26c6da, 1.7);
+  addRedPin(ndPos);
+  addRedPin(rwPos);
+  pulseMarkers.push({ coreMat: pinMat, pulsePhase: 0 });
 
   const arcBulge = 0.56;
   const arcCurve = new THREE.QuadraticBezierCurve3(
@@ -170,30 +173,76 @@ export function createGlobe(wrap, canvas) {
     parabolicArcControl(ndPos, rwPos, PIN_RADIUS, arcBulge),
     rwPos.clone()
   );
-  const arcGeo = new THREE.BufferGeometry().setFromPoints(arcCurve.getPoints(100));
-  const arcMat = new THREE.LineBasicMaterial({
-    color: 0xa8dcff,
+
+  const arcPts = arcCurve.getPoints(128);
+  const arcPosFlat = [];
+  for (let i = 0; i < arcPts.length; i += 1) {
+    arcPosFlat.push(arcPts[i].x, arcPts[i].y, arcPts[i].z);
+  }
+  const arcLineGeo = new LineGeometry();
+  arcLineGeo.setPositions(arcPosFlat);
+
+  const arcLineMat = new LineMaterial({
+    color: 0x1565c0,
+    linewidth: 6,
+    worldUnits: false,
     transparent: true,
-    opacity: 0.82
+    opacity: 1,
+    depthTest: true
   });
-  const arcLine = new THREE.Line(arcGeo, arcMat);
-  arcLine.renderOrder = 2;
+  arcLineMat.resolution.set(wrap.clientWidth, wrap.clientHeight);
+
+  const arcLine = new Line2(arcLineGeo, arcLineMat);
+  arcLine.computeLineDistances();
+  arcLine.renderOrder = 4;
   markerRoot.add(arcLine);
 
-  function addGlobeLabel(text, anchor) {
+  const ARROW_H = 0.095;
+  const ARROW_R = 0.048;
+  const arrowMat = new THREE.MeshStandardMaterial({
+    color: 0x42a5f5,
+    emissive: 0x0d47a1,
+    emissiveIntensity: 0.45,
+    metalness: 0.22,
+    roughness: 0.32
+  });
+
+  function addArrowAtEnd(anchor, dirAlongArrow) {
+    const d = dirAlongArrow.clone().normalize();
+    const cone = new THREE.Mesh(new THREE.ConeGeometry(ARROW_R, ARROW_H, 12), arrowMat);
+    cone.geometry.translate(0, ARROW_H / 2, 0);
+    const g = new THREE.Group();
+    g.position.copy(anchor.clone().sub(d.clone().multiplyScalar(ARROW_H)));
+    g.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d);
+    cone.renderOrder = 5;
+    g.renderOrder = 5;
+    g.add(cone);
+    markerRoot.add(g);
+  }
+
+  const tanStart = arcCurve.getTangentAt(0).normalize();
+  const tanEnd = arcCurve.getTangentAt(1).normalize();
+  addArrowAtEnd(ndPos, tanStart);
+  addArrowAtEnd(rwPos, tanEnd);
+
+  function pinLabelPosition(anchor) {
+    const n = anchor.clone().normalize();
+    return anchor.clone().add(n.multiplyScalar(PIN_HEIGHT + 0.14));
+  }
+
+  function addGlobeLabel(text, position) {
     const el = document.createElement("div");
     el.className = "globe-label";
     el.textContent = text;
     const label = new CSS2DObject(el);
-    const lift = 0.13;
-    label.position.copy(anchor.clone().normalize().multiplyScalar(anchor.length() + lift));
+    label.position.copy(position);
     label.center.set(0.5, 1);
     markerRoot.add(label);
     return label;
   }
 
-  addGlobeLabel("Notre Dame (Home)", ndPos);
-  addGlobeLabel("Rwanda (Home)", rwPos);
+  addGlobeLabel("Notre Dame (Home)", pinLabelPosition(ndPos));
+  addGlobeLabel("Rwanda (Home)", pinLabelPosition(rwPos));
 
   const labelRenderer = new CSS2DRenderer();
   labelRenderer.setSize(wrap.clientWidth, wrap.clientHeight);
@@ -244,6 +293,7 @@ export function createGlobe(wrap, canvas) {
     }
     renderer.setSize(w, h, false);
     labelRenderer.setSize(w, h);
+    arcLineMat.resolution.set(w, h);
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
   }
@@ -265,8 +315,8 @@ export function createGlobe(wrap, canvas) {
     globe.rotation.x = Math.sin(t * 0.22) * 0.05;
     cloudLayer.rotation.y += 0.00185;
     markerRoot.rotation.copy(globe.rotation);
-    const pulseBase = 1.15;
-    const pulseAmp = 0.45;
+    const pulseBase = 0.38;
+    const pulseAmp = 0.22;
     for (let i = 0; i < pulseMarkers.length; i += 1) {
       const m = pulseMarkers[i];
       m.coreMat.emissiveIntensity = pulseBase + Math.sin(t * 2.35 + m.pulsePhase) * pulseAmp;
