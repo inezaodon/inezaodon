@@ -1,4 +1,7 @@
 import { createGlobe } from "./globe.js";
+import { initTheme } from "./theme.js";
+
+initTheme();
 
 const wrap = document.getElementById("globe-wrap");
 const canvas = wrap ? wrap.querySelector("canvas") : null;

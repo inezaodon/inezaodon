@@ -108,12 +108,6 @@ export function createGlobe(wrap, canvas) {
   const globe = new THREE.Mesh(new THREE.SphereGeometry(1.42, 96, 96), globeMat);
   globeGroup.add(globe);
 
-  const atmosphere = new THREE.Mesh(
-    new THREE.SphereGeometry(1.5, 64, 64),
-    new THREE.MeshBasicMaterial({ color: 0x8bbaff, transparent: true, opacity: 0.2 })
-  );
-  globeGroup.add(atmosphere);
-
   const cloudLayer = new THREE.Mesh(new THREE.SphereGeometry(1.465, 96, 96), cloudMat);
   globeGroup.add(cloudLayer);
 
