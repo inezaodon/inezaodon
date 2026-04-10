@@ -111,24 +111,6 @@ export function createGlobe(wrap, canvas) {
   const cloudLayer = new THREE.Mesh(new THREE.SphereGeometry(1.465, 96, 96), cloudMat);
   globeGroup.add(cloudLayer);
 
-  function makeOrbit(radius, tiltX, tiltY, color) {
-    const curve = new THREE.EllipseCurve(0, 0, radius, radius * 0.42, 0, Math.PI * 2, false, 0);
-    const points = curve.getPoints(240).map((p) => new THREE.Vector3(p.x, p.y, 0));
-    const geo = new THREE.BufferGeometry().setFromPoints(points);
-    const line = new THREE.LineLoop(
-      geo,
-      new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.9 })
-    );
-    line.rotation.x = tiltX;
-    line.rotation.y = tiltY;
-    globeGroup.add(line);
-    return line;
-  }
-
-  const orbitA = makeOrbit(2.03, 1.16, 0.38, 0x22eaff);
-  const orbitB = makeOrbit(1.96, 0.44, -0.74, 0x1fd8ff);
-  const orbitC = makeOrbit(2.11, -0.08, 0.98, 0x48efff);
-
   const starGeo = new THREE.BufferGeometry();
   const starCount = 220;
   const starPos = new Float32Array(starCount * 3);
@@ -188,9 +170,6 @@ export function createGlobe(wrap, canvas) {
     globe.rotation.y += 0.00125;
     globe.rotation.x = Math.sin(t * 0.22) * 0.05;
     cloudLayer.rotation.y += 0.00185;
-    orbitA.rotation.z = t * 0.44;
-    orbitB.rotation.z = -t * 0.35;
-    orbitC.rotation.z = t * 0.28;
     globeGroup.position.y = Math.sin(t * 0.8) * 0.06;
     controls.update();
     renderer.render(scene, camera);
