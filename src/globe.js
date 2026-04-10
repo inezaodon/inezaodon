@@ -9,6 +9,17 @@ function texUrl(file) {
   return `${base}textures/${file}`;
 }
 
+/** Y-up sphere aligned with typical equirectangular Earth textures (e.g. three.js planet maps). */
+function latLonToGlobeLocal(latDeg, lonDeg, radius) {
+  const phi = ((90 - latDeg) * Math.PI) / 180;
+  const theta = ((lonDeg + 180) * Math.PI) / 180;
+  return new THREE.Vector3(
+    -radius * Math.sin(phi) * Math.cos(theta),
+    radius * Math.cos(phi),
+    radius * Math.sin(phi) * Math.sin(theta)
+  );
+}
+
 export function createGlobe(wrap, canvas) {
   const canvasCount = document.querySelectorAll("#globe-canvas").length;
   if (canvasCount > 1) {
@@ -111,6 +122,40 @@ export function createGlobe(wrap, canvas) {
   const cloudLayer = new THREE.Mesh(new THREE.SphereGeometry(1.465, 96, 96), cloudMat);
   globeGroup.add(cloudLayer);
 
+  const markerRoot = new THREE.Group();
+  globeGroup.add(markerRoot);
+
+  const PIN_RADIUS = 1.492;
+  const pulseMarkers = [];
+
+  function addCityHighlight(latDeg, lonDeg, colorHex, pulsePhase = 0) {
+    const center = latLonToGlobeLocal(latDeg, lonDeg, PIN_RADIUS);
+    const coreMat = new THREE.MeshStandardMaterial({
+      color: colorHex,
+      emissive: colorHex,
+      emissiveIntensity: 1.35,
+      metalness: 0.22,
+      roughness: 0.38
+    });
+    const core = new THREE.Mesh(new THREE.SphereGeometry(0.05, 22, 22), coreMat);
+    core.position.copy(center);
+    const haloMat = new THREE.MeshBasicMaterial({
+      color: colorHex,
+      transparent: true,
+      opacity: 0.38,
+      depthWrite: false
+    });
+    const halo = new THREE.Mesh(new THREE.SphereGeometry(0.1, 28, 28), haloMat);
+    halo.position.copy(center);
+    halo.renderOrder = 2;
+    core.renderOrder = 3;
+    markerRoot.add(halo, core);
+    pulseMarkers.push({ coreMat, pulsePhase });
+  }
+
+  addCityHighlight(41.7031, -86.2384, 0xe8b923, 0);
+  addCityHighlight(-1.944, 30.0619, 0x26c6da, 1.7);
+
   const starGeo = new THREE.BufferGeometry();
   const starCount = 220;
   const starPos = new Float32Array(starCount * 3);
@@ -170,6 +215,13 @@ export function createGlobe(wrap, canvas) {
     globe.rotation.y += 0.00125;
     globe.rotation.x = Math.sin(t * 0.22) * 0.05;
     cloudLayer.rotation.y += 0.00185;
+    markerRoot.rotation.copy(globe.rotation);
+    const pulseBase = 1.15;
+    const pulseAmp = 0.45;
+    for (let i = 0; i < pulseMarkers.length; i += 1) {
+      const m = pulseMarkers[i];
+      m.coreMat.emissiveIntensity = pulseBase + Math.sin(t * 2.35 + m.pulsePhase) * pulseAmp;
+    }
     globeGroup.position.y = Math.sin(t * 0.8) * 0.06;
     controls.update();
     renderer.render(scene, camera);
