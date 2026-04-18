@@ -1,23 +1,17 @@
-- 👋 Hi, I’m @inezaodon
-- 👀 I’m interested in Computer Science and Research analysis.
-- 🌱 I’m currently learning React Js, Django, JavaScript
-- 💞️ I’m looking to collaborate on ...
-- 📫 How to reach me ...
+# Hi, I'm inezaodon
 
-## Profile site (GitHub Pages)
+Software developer — projects and writing live on my portfolio.
 
-This repository builds a **Vite + Three.js** page with **bundled** Three.js and **self-hosted** Earth textures (no `unpkg` / no runtime dependency on `threejs.org` for scripts).
+**Portfolio:** [10124.vercel.app](https://10124.vercel.app)
 
-- **Develop:** `npm install` then `npm run dev`
-- **Build:** `python3 scripts/fetch_textures.py` then `npm run build` (output: `docs/`)
+## Selected repositories
 
-**GitHub Pages:** **Deploy from branch** → **main** and **`/docs`** folder. Do **not** publish the repository **root** as the site; the root `index.html` is **source** for Vite only—the built site lives in **`docs/`**.
+- [**sketching_with_fouriers**](https://github.com/inezaodon/sketching_with_fouriers) — Complex Fourier Series are incredible! With enough rotating vectors, you can actually trace out a perfect portrait of professor Mulholland. Or anyone you want.
+- [**10124**](https://github.com/inezaodon/10124) — Next.js portfolio — live site, GitHub integrations, and contact API.
+- [**nanochat-replica**](https://github.com/inezaodon/nanochat-replica) — In the era infused with AI, reading text is one of the best things computers can do. I am embarking on this project to learn and understand how the concepts behind LLMs work.
+- [**brilliantsciences**](https://github.com/inezaodon/brilliantsciences) — This is a learning platform where teachers can upload courses and monitor students' progress, give marks, and receive their comments on each type of syllabus or video uploaded. Note: This is still being developed, I will inform you once it is finished and ready to go!
+- [**PRINCOMP_FINAL_PREOJECT**](https://github.com/inezaodon/PRINCOMP_FINAL_PREOJECT) — No description
 
-**Vercel:** The build outputs to **`docs/`** (not `dist`). `vercel.json` sets `outputDirectory` to `docs` so the deployment matches Vite’s `outDir`.
+---
 
-You can add a GitHub Actions “Deploy Pages” workflow later if you want builds on every push (requires a token with the `workflow` scope to push workflow files).
-
-<!---
-inezaodon/inezaodon is a ✨ special ✨ repository because its `README.md` (this file) appears on your GitHub profile.
-You can click the Preview link to take a look at your changes.
---->
+_This README is generated from [inezaodon/10124](https://github.com/inezaodon/10124)._
